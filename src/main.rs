@@ -1,18 +1,13 @@
 use std::convert::Infallible;
+pub mod routes;
 
-use axum::{
-    http::HeaderMap,
-    routing::{get, post},
-    Json,
-};
-use serde_json::Value;
+use axum::{http::HeaderMap, Json};
 use serde::Serialize;
+use serde_json::Value;
 
 #[tokio::main]
 async fn main() {
-    let base_router = axum::Router::new()
-        .route("/hello", get(handle_hello))
-        .route("/hello", post(handle_hello_post));
+    let base_router = axum::Router::new().merge(routes::get_router());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
         .await
@@ -21,16 +16,13 @@ async fn main() {
     axum::serve(listener, base_router).await.unwrap();
 }
 
-async fn handle_hello() -> String {
-    println!("Hello world should be printed");
-    "hello world".to_string()
-}
-
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct ResponseForHello {
     hello: String,
 }
 
+#[allow(dead_code)]
 async fn handle_hello_post(
     headers: HeaderMap,
     payload: Json<Value>,
