@@ -1,40 +1,31 @@
-use std::convert::Infallible;
-pub mod routes;
+use std::sync::{Arc, RwLock};
 
-use axum::{http::HeaderMap, Json};
-use serde::Serialize;
-use serde_json::Value;
+use sqlx::{mysql::MySqlPool, Error, MySql, Pool};
+
+pub mod routes;
 
 #[tokio::main]
 async fn main() {
-    let base_router = axum::Router::new().merge(routes::get_router());
+    println!("Initialized Application");
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
         .await
         .unwrap();
 
+    let base_router = axum::Router::new()
+        .merge(routes::get_router());
+
     axum::serve(listener, base_router).await.unwrap();
+
+    println!("Server Started");
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Serialize)]
-struct ResponseForHello {
-    hello: String,
+async fn connect_database() -> Result<Pool<MySql>, Error> {
+    return MySqlPool::connect("mysql://root:password@localhost:3306/test").await;
 }
 
+#[derive(Clone)]
 #[allow(dead_code)]
-async fn handle_hello_post(
-    headers: HeaderMap,
-    payload: Json<Value>,
-) -> Result<Json<ResponseForHello>, Infallible> {
-    dbg!(headers.get("content-type").unwrap());
-
-    println!(
-        "hello value: {}",
-        &payload.get("hello").unwrap().to_string()
-    );
-
-    return Ok(Json(ResponseForHello {
-        hello: "world".to_string(),
-    }));
+struct DatabaseConnection {
+    connection: Pool<MySql>,
 }

@@ -1,20 +1,37 @@
+use std::sync::{Arc, RwLock};
+
 use axum::{
+    extract::State,
     routing::{get, post},
-    Json,
+    Json, Router,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
+use sqlx::Executor;
 
-pub fn user_router() -> axum::Router {
-    let router = axum::Router::new()
+use crate::DatabaseConnection;
+
+pub fn user_router() -> Router<Arc<RwLock<DatabaseConnection>>> {
+    let router = Router::new()
         .route("/", get(get_users))
         .route("/create", post(create_user));
 
     return router;
 }
 
-async fn get_users() -> String {
+async fn get_users(State(database_connection): State<Arc<RwLock<DatabaseConnection>>>) -> String {
     println!("Get users");
+
+    let result = database_connection
+        .read()
+        .unwrap()
+        .connection
+        .execute("SELECT * FROM users")
+        .await
+        .unwrap();
+
+    println!("{:?}", result);
+
     return "users".to_string();
 }
 
